@@ -2079,533 +2079,263 @@ LIGHTNING_ROD`;
         "LIGHTNING_ROD": "Common"
       };
 
-      // Working rarity mapping: start with defaults.
-      let workingRarityMapping = {};
-      fullItemsArray.forEach(item => {
-        workingRarityMapping[item] = defaultRarityMapping[item] || "Common";
-      });
-
-      /********** MODIFIER SETTINGS **********/
-      // Define modifier options – note the addition of "Random Teams"
-      const modOptions = {
-        "Difficulty": ["Easy", "Normal", "Hard"],
-        "Full Card": ["Yes", "No", "Lockout"],
-        "Hardcore": ["Yes", "No"],
-        "Random Teleport": ["Yes", "No"],
-        "PvP Enabled": ["Yes", "No"],
-        "Keep Inventory": ["Yes", "No"],
-        "Daylight Cycle": ["Yes", "No"],
-        "Mob Spawning": ["Yes", "No"],
-        "Tickspeed": ["1", "3", "5", "10"],
-        "Random Teams": ["Yes", "No"]
-      };
-
-      // Build the Modifier Settings UI inside the settings panel.
-      function buildModifierSettings() {
-        const container = document.getElementById("modifierSettingsList");
-        container.innerHTML = "";
-        for (let mod in modOptions) {
-          let row = document.createElement("div");
-          row.className = "modRow";
-          let label = document.createElement("label");
-          label.innerText = mod + ":";
-          let dropdown = document.createElement("select");
-          dropdown.id = "mod_" + mod.replace(/\s+/g, "");
-          // Options: "Yes" (randomise) or "No" (disabled)
-          let optYes = document.createElement("option");
-          optYes.value = "Yes";
-          optYes.textContent = "Yes";
-          let optNo = document.createElement("option");
-          optNo.value = "No";
-          optNo.textContent = "No";
-          dropdown.appendChild(optYes);
-          dropdown.appendChild(optNo);
-          // Default to Yes.
-          dropdown.value = "Yes";
-          row.appendChild(label);
-          row.appendChild(dropdown);
-          container.appendChild(row);
-        }
-      }
-
-      /********** EFFECTS SETTING **********/
-      // (We already have a dropdown "randomEffectsDropdown" in the settings panel.)
-      
-      /********** MODIFIER ROLLING FUNCTIONS **********/
-      // Roll a single modifier value
-      function rollSingleModifier(modName) {
-        let choices = modOptions[modName];
-        let roll = Math.floor(Math.random() * choices.length);
-        return choices[roll];
-      }
-      
-      // Roll only the modifiers that are enabled in the settings panel.
-      function rollModifiersEnabled() {
-        let results = {};
-        for (let mod in modOptions) {
-          let dropdown = document.getElementById("mod_" + mod.replace(/\s+/g, ""));
-          if (dropdown && dropdown.value === "Yes") {
-            results[mod] = rollSingleModifier(mod);
-          }
-        }
-        return results;
-      }
-      
-      // Animate the display of rolled modifiers (one by one)
-      function animateModifiers(mods) {
-        const displayDiv = document.getElementById("rolledModifiersDisplay");
-        displayDiv.innerHTML = "";
-        let keys = Object.keys(mods);
-        return new Promise(resolve => {
-          let i = 0;
-          function revealNext() {
-            if (i < keys.length) {
-              let p = document.createElement("p");
-              p.innerText = keys[i] + ": " + mods[keys[i]];
-              displayDiv.appendChild(p);
-              setTimeout(() => { i++; revealNext(); }, 300);
-            } else {
-              resolve();
-            }
-          }
-          if(keys.length > 0) revealNext();
-          else { displayDiv.innerText = "No modifiers rolled."; resolve(); }
-        });
-      }
-      
-      /********** EFFECT ROLLING FUNCTIONS **********/
-      const effectList = ["speed", "slow", "fast_digging", "slow_digging", "jump", "confusion", "damage_resistance", "fire_resistance", "water_breathing", "invisibility", "blindness", "night_vision", "hunger", "weakness", "poison", "wither", "glowing", "slow_falling", "darkness", "regeneration", "dolphins_grace"];
-      
-      function rollEffects() {
-        let results = [];
-        // Roll repeatedly with a 50% chance to add an effect.
-        while (Math.random() < 0.5) {
-          let effect = effectList[Math.floor(Math.random() * effectList.length)];
-          let level = Math.floor(Math.random() * 10) + 1;
-          results.push(effect + " " + level);
-        }
-        return results.length > 0 ? results : ["None"];
-      }
-      
-      function animateEffects(effects) {
-        const displayDiv = document.getElementById("rolledEffectsDisplay");
-        displayDiv.innerHTML = "";
-        return new Promise(resolve => {
-          let i = 0;
-          function revealNext() {
-            if (i < effects.length) {
-              let p = document.createElement("p");
-              p.innerText = effects[i];
-              displayDiv.appendChild(p);
-              setTimeout(() => { i++; revealNext(); }, 300);
-            } else {
-              resolve();
-            }
-          }
-          revealNext();
-        });
-      }
-      
-      /********** CARD GENERATION FUNCTIONS **********/
-      // Odds for rolling rarity category:
-      const fixedCategoryProbabilities = {
-        "Very Common": 0.50,
-        "Common": 0.30,
-        "Uncommon": 0.149,
-        "Rare": 0.05,
-        "Super Rare": 0.001
-      };
-      
-      function rollRarityCategory() {
-        let roll = Math.random();
-        let cumulative = 0;
-        for (let cat in fixedCategoryProbabilities) {
-          cumulative += fixedCategoryProbabilities[cat];
-          if (roll < cumulative) return cat;
-        }
-        return "Common";
-      }
-      
-      // Generate card array: For each cell, roll a rarity then pick one item from pool whose default rarity exactly matches.
-      function generateCardArray(size) {
-        let pool = fullItemsArray.slice();
-        let card = [];
-        let overallScore = 0;
-        for (let i = 0; i < size; i++) {
-          card[i] = [];
-          for (let j = 0; j < size; j++) {
-            let chosenCat = rollRarityCategory();
-            let available = pool.filter(item => defaultRarityMapping[item] === chosenCat);
-            let chosenItem;
-            if (available.length > 0) {
-              chosenItem = available[Math.floor(Math.random() * available.length)];
-            } else {
-              chosenItem = pool[Math.floor(Math.random() * pool.length)];
-              chosenCat = defaultRarityMapping[chosenItem] || "Common";
-            }
-            pool.splice(pool.indexOf(chosenItem), 1);
-            card[i][j] = { item: chosenItem, category: chosenCat };
-            overallScore += categoryMapping[chosenCat].score;
-          }
-        }
-        card[0][0]._overallScore = overallScore;
-        return card;
-      }
-      
-      function computeCardGrade(card, size) {
-        const maxScore = 5 * size * size;
-        const ratio = card[0][0]._overallScore / maxScore;
-        if (ratio >= 0.8) return "Legendary Card";
-        if (ratio >= 0.6) return "Epic Card";
-        if (ratio >= 0.4) return "Rare Card";
-        if (ratio >= 0.2) return "Common Card";
-        return "Very Common Card";
-      }
-      
-      function buildCardTable(card) {
-        let size = card.length;
-        let table = document.createElement("table");
-        table.style.tableLayout = "fixed";
-        for (let i = 0; i < size; i++) {
-          let tr = document.createElement("tr");
-          for (let j = 0; j < size; j++) {
-            let td = document.createElement("td");
-            td.innerText = "";
-            tr.appendChild(td);
-          }
-          table.appendChild(tr);
-        }
-        const bingoDiv = document.getElementById("bingoCard");
-        bingoDiv.innerHTML = "";
-        bingoDiv.appendChild(table);
-        return table;
-      }
-      
-      async function revealCardSequentially(card, table) {
-        let size = card.length;
-        let cells = table.getElementsByTagName("td");
-        let cellDelay = 500;
-        for (let i = 0; i < size; i++) {
-          for (let j = 0; j < size; j++) {
-            let cell = cells[i * size + j];
-            await revealCell(cell, card[i][j].item, card[i][j].category, cellDelay);
-          }
-        }
-      }
-      
-      function revealCell(cellElem, finalItem, rarityCategory, revealTime) {
-        return new Promise(resolve => {
-          let startTime = Date.now();
-          let interval = setInterval(() => {
-            if (Date.now() - startTime >= revealTime) {
-              clearInterval(interval);
-              cellElem.innerHTML = finalItem + "<br><span style='font-size:10px;'>" + rarityCategory + "</span>";
-              cellElem.style.backgroundColor = categoryMapping[rarityCategory].color;
-              cellElem.style.color = categoryMapping[rarityCategory].textColor;
-              try {
-                if (rarityCategory === "Super Rare") {
-                  document.getElementById("soundSuperRare").currentTime = 0;
-                  document.getElementById("soundSuperRare").play();
-                } else if (rarityCategory === "Rare") {
-                  document.getElementById("soundRare").currentTime = 0;
-                  document.getElementById("soundRare").play();
-                } else if (rarityCategory === "Uncommon") {
-                  document.getElementById("soundUncommon").currentTime = 0;
-                  document.getElementById("soundUncommon").play();
-                } else if (rarityCategory === "Common") {
-                  document.getElementById("soundCommon").currentTime = 0;
-                  document.getElementById("soundCommon").play();
-                } else if (rarityCategory === "Very Common") {
-                  document.getElementById("soundVeryCommon").currentTime = 0;
-                  document.getElementById("soundVeryCommon").play();
-                }
-              } catch(e) {
-                console.warn("Audio playback error:", e);
-              }
-              resolve();
-            } else {
-              cellElem.innerText = fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
-            }
-          }, 50);
-        });
-      }
-      
-      async function animateSlotMachine(finalSize) {
-        return new Promise(resolve => {
-          let slotMachine = document.getElementById("slotMachine");
-          slotMachine.style.display = "block";
-          let reel1 = document.getElementById("reel1");
-          let reel2 = document.getElementById("reel2");
-          let reel3 = document.getElementById("reel3");
-          let sizes = [1,2,3,4,5,6,7,8,9,10];
-          let interval = setInterval(() => {
-            reel1.innerText = sizes[Math.floor(Math.random()*sizes.length)] + "×" + sizes[Math.floor(Math.random()*sizes.length)];
-            reel2.innerText = sizes[Math.floor(Math.random()*sizes.length)] + "×" + sizes[Math.floor(Math.random()*sizes.length)];
-            reel3.innerText = sizes[Math.floor(Math.random()*sizes.length)] + "×" + sizes[Math.floor(Math.random()*sizes.length)];
-          }, 100);
-          setTimeout(() => {
-            clearInterval(interval);
-            let display = finalSize + "×" + finalSize;
-            reel1.innerText = display;
-            reel2.innerText = display;
-            reel3.innerText = display;
-            try {
-              document.getElementById("spinSound").currentTime = 0;
-              document.getElementById("spinSound").play();
-            } catch(e) { console.warn("Spin sound error:", e); }
-            setTimeout(() => {
-              slotMachine.style.display = "none";
-              resolve(finalSize);
-            }, 500);
-          }, 2000);
-        });
-      }
-      
-     async function getCardSize() {
-  if (document.getElementById("randomCardSizeCheckbox").checked) {
-    // Define weighted sizes for 1×1 to 10×10.
-    const weightedSizes = [
-      { size: 1, weight: 1 },
-      { size: 2, weight: 2 },
-      { size: 3, weight: 4 },
-      { size: 4, weight: 8 },
-      { size: 5, weight: 20 },
-      { size: 6, weight: 8 },
-      { size: 7, weight: 4 },
-      { size: 8, weight: 2 },
-      { size: 9, weight: 1 },
-      { size: 10, weight: 0.5 }
-    ];
-    // Calculate total weight.
-    const totalWeight = weightedSizes.reduce((sum, s) => sum + s.weight, 0);
-    let roll = Math.random() * totalWeight;
-    let chosenSize;
-    for (let i = 0; i < weightedSizes.length; i++) {
-      roll -= weightedSizes[i].weight;
-      if (roll < 0) {
-        chosenSize = weightedSizes[i].size;
-        break;
-      }
+     <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Minecraft Bingo Card Randomiser</title>
+  <style>
+    /* Basic Reset & Body Styling */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f8ff;
+      color: #333;
+      text-align: center;
+      margin: 20px;
     }
-    // Optionally, animate the chosen size using your slot machine:
-    let finalSize = await animateSlotMachine(chosenSize);
-    return finalSize;
-  } else {
-    return parseInt(document.getElementById("manualSizeSelect").value);
-  }
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-  /********** MAIN GENERATION FUNCTION **********/
-  async function main() {
-    document.getElementById("generateCardButton").disabled = true;
-    document.getElementById("gradeDisplay").innerText = "";
-    document.getElementById("cardSizeDisplay").innerText = "";
-    document.getElementById("bingoCard").innerHTML = "";
-    document.getElementById("rolledModifiersDisplay").innerHTML = "";
-    document.getElementById("rolledEffectsDisplay").innerHTML = "";
-
-    let size = await getCardSize();
-    document.getElementById("cardSizeDisplay").innerText = `Card Size: ${size}×${size}`;
-    let card = generateCardArray(size);
-    let table = buildCardTable(card);
-    await revealCardSequentially(card, table);
-    let grade = computeCardGrade(card, size);
-    document.getElementById("gradeDisplay").innerText = `Card Rarity Grade: ${grade}`;
-
-    if (document.getElementById("globalModifierToggle").value === "Yes") {
-      let mods = rollModifiersEnabled();
-      await animateModifiers(mods);
-    } else {
-      document.getElementById("rolledModifiersDisplay").innerText = "Modifiers disabled";
+    h1 { margin-bottom: 10px; }
+    h2, h3 { margin-bottom: 5px; }
+    /* Top Bar */
+    #topBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #333;
+      color: #fff;
+      padding: 10px;
+      margin-bottom: 10px;
     }
-
-    if (document.getElementById("randomEffectsDropdown").value === "Yes") {
-      let effects = rollEffects();
-      await animateEffects(effects);
-    } else {
-      document.getElementById("rolledEffectsDisplay").innerText = "Effects: None";
-    }
-
-    document.getElementById("generateCardButton").disabled = false;
-  }
-
-  /********** RARITY EDITOR FUNCTIONS **********/
-  function buildRarityEditor() {
-    let list = document.getElementById("rarityList");
-    list.innerHTML = "";
-    fullItemsArray.forEach(item => {
-      let row = document.createElement("div");
-      row.className = "itemRow";
-      let label = document.createElement("label");
-      label.innerText = item;
-      let currentVal = workingRarityMapping[item];
-      let dropdown = document.createElement("select");
-      dropdown.className = "rarityDropdown";
-      dropdown.dataset.item = item;
-      for (let cat in categoryMapping) {
-        let opt = document.createElement("option");
-        opt.value = cat;
-        opt.textContent = cat;
-        if (cat === currentVal) { opt.selected = true; }
-        dropdown.appendChild(opt);
-      }
-      row.appendChild(label);
-      row.appendChild(dropdown);
-      list.appendChild(row);
-    });
-  }
-
-  function saveRarities() {
-    document.querySelectorAll(".rarityDropdown").forEach(dropdown => {
-      let item = dropdown.dataset.item;
-      let chosenCat = dropdown.value;
-      workingRarityMapping[item] = chosenCat;
-      defaultRarityMapping[item] = chosenCat;
-    });
-    alert("Rarity values saved!");
-    console.log("Updated rarity mapping:", workingRarityMapping);
-  }
-
-  /********** SETTINGS PANEL HANDLERS **********/
-  function toggleSettings() {
-    let panel = document.getElementById("settingsPanel");
-    panel.style.display = (panel.style.display === "none" || panel.style.display === "") ? "block" : "none";
-  }
-
-  function closeSettings() {
-    document.getElementById("settingsPanel").style.display = "none";
-  }
-
-  /********** EVENT LISTENERS **********/
-  document.getElementById("settingsButton").addEventListener("click", toggleSettings);
-  document.getElementById("closeSettingsButton").addEventListener("click", closeSettings);
-  document.getElementById("generateCardButton").addEventListener("click", main);
-  document.getElementById("editRaritiesButton").addEventListener("click", buildRarityEditor);
-  document.getElementById("saveRaritiesButton").addEventListener("click", saveRarities);
-  document.getElementById("randomCardSizeCheckbox").addEventListener("change", function () {
-    document.getElementById("manualSizeSelect").style.display = this.checked ? "none" : "inline-block";
-  });
-
-  // Build Modifier Settings UI on load
-  buildModifierSettings();
-
-  // Global references
-  window.rollRarityCategory = rollRarityCategory;
-  window.fullItemsArray = fullItemsArray;
-  window.defaultRarityMapping = defaultRarityMapping;
-  window.categoryMapping = categoryMapping;
-
-  /********** REROLL AND COPY HANDLERS **********/
-  function rerollCell(cellElem) {
-    const revealTime = 500;
-    const startTime = Date.now();
-    const newCategory = rollRarityCategory();
-    const available = fullItemsArray.filter(item => defaultRarityMapping[item] === newCategory);
-    const newItem = (available.length > 0)
-      ? available[Math.floor(Math.random() * available.length)]
-      : fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
-
-    const interval = setInterval(() => {
-      if (Date.now() - startTime >= revealTime) {
-        clearInterval(interval);
-        cellElem.innerHTML = newItem + "<br><span style='font-size:10px;'>" + newCategory + "</span>";
-        cellElem.style.backgroundColor = categoryMapping[newCategory].color;
-        cellElem.style.color = categoryMapping[newCategory].textColor;
-        cellElem.dataset.itemText = newItem + " (" + newCategory + ")";
-        try {
-          const soundMap = {
-            "Super Rare": "soundSuperRare",
-            "Rare": "soundRare",
-            "Uncommon": "soundUncommon",
-            "Common": "soundCommon",
-            "Very Common": "soundVeryCommon"
-          };
-          const soundId = soundMap[newCategory];
-          if (soundId) {
-            const soundElem = document.getElementById(soundId);
-            if (soundElem) {
-              soundElem.currentTime = 0;
-              soundElem.play();
-            }
-          }
-        } catch (e) {
-          console.warn("Audio playback error:", e);
-        }
-      } else {
-        cellElem.innerText = fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
-      }
-    }, 50);
-  }
-
-  // Delegate click event for reroll
-  document.addEventListener("click", function (e) {
-    const cell = e.target;
-    if (cell.tagName === "TD" && cell.closest("#bingoCard")) {
-      cell.style.pointerEvents = "none";
-      rerollCell(cell);
-      setTimeout(() => { cell.style.pointerEvents = "auto"; }, 600);
-    }
-  });
-
-  // Apply hover styles immediately on generation
-  const style = document.createElement("style");
-  style.innerHTML = `
-    #bingoCard td {
+    #topBar button {
+      background: #555;
+      border: none;
+      color: #fff;
+      padding: 5px 10px;
       cursor: pointer;
     }
-  `;
-  document.head.appendChild(style);
-
-  // Copy to clipboard on "C" key while hovering
-  let currentlyHoveredCell = null;
-
-  document.addEventListener("mouseover", function (e) {
-    if (e.target.tagName === "TD" && e.target.closest("#bingoCard")) {
-      currentlyHoveredCell = e.target;
+    #topBar button:hover { background: #777; }
+    /* Settings Panel */
+    #settingsPanel {
+      display: none;
+      max-width: 900px;
+      margin: 10px auto;
+      text-align: left;
+      border: 2px solid #333;
+      background: #fff;
+      padding: 10px;
     }
-  });
-
-  document.addEventListener("mouseout", function (e) {
-    if (e.target === currentlyHoveredCell) {
-      currentlyHoveredCell = null;
+    #settingsPanel h2 { margin-top: 0; }
+    #settingsPanel .settingRow { margin-bottom: 10px; }
+    #settingsPanel label { margin-right: 10px; }
+    #settingsPanel select, #settingsPanel input[type="checkbox"] { margin-right: 10px; }
+    #settingsPanel button { margin-top: 5px; padding: 5px 10px; }
+    #modifierSettingsList { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; padding: 5px; margin-top: 5px; }
+    .modRow { display: flex; align-items: center; margin-bottom: 5px; }
+    .modRow label { width: 150px; text-align: right; margin-right: 10px; }
+    .modRow select { width: 80px; }
+    /* Display Areas */
+    #bingoCard table { margin: 20px auto; border-collapse: collapse; table-layout: fixed; width: auto; }
+    #bingoCard td {
+      border: 2px solid #333;
+      width: 80px; height: 80px;
+      vertical-align: middle;
+      font-size: 12px;
+      text-align: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+      cursor: pointer; /* pointer on all cells */
     }
-  });
+    #cardSizeDisplay, #gradeDisplay { margin-top: 10px; font-weight: bold; font-size: 16px; }
+    /* Slot Machine */
+    #slotMachine { display: none; margin: 20px auto; width: 320px; border: 2px solid #333; background: #eee; padding: 10px; text-align: center; }
+    .reel { display: inline-block; width: 80px; height: 80px; margin: 0 5px; border: 2px solid #666; font-size: 28px; line-height: 80px; background: #fff; }
+  </style>
+</head>
+<body>
+  <div id="topBar">
+    <h1 style="color:#fff;">Minecraft Bingo Card Randomiser</h1>
+    <button id="settingsButton">Settings</button>
+  </div>
+  <div id="settingsPanel">
+    <h2>Settings</h2>
+    <div class="settingRow">
+      <input type="checkbox" id="randomCardSizeCheckbox" checked>
+      <label for="randomCardSizeCheckbox">Randomise Card Size?</label>
+      <select id="manualSizeSelect" style="display:none;">
+        <option value="1">1×1</option><option value="2">2×2</option>
+        <option value="3">3×3</option><option value="4">4×4</option>
+        <option value="5" selected>5×5</option><option value="6">6×6</option>
+        <option value="7">7×7</option><option value="8">8×8</option>
+        <option value="9">9×9</option><option value="10">10×10</option>
+      </select>
+    </div>
+    <div class="settingRow">
+      <label>Modifier Randomisation:</label>
+      <select id="globalModifierToggle"><option>Yes</option><option>No</option></select>
+    </div>
+    <div class="settingRow">
+      <h3>Modifier Settings</h3>
+      <div id="modifierSettingsList"></div>
+    </div>
+    <div class="settingRow">
+      <label for="randomEffectsDropdown">Randomise Effects:</label>
+      <select id="randomEffectsDropdown"><option>Yes</option><option>No</option></select>
+    </div>
+    <div class="settingRow">
+      <button id="editRaritiesButton">Edit Item Rarities</button>
+    </div>
+    <div id="rarityList" style="border:1px solid #ccc; max-height:200px; overflow-y:auto; padding:5px;"></div>
+    <button id="saveRaritiesButton">Save Changes</button>
+    <div class="settingRow">
+      <button id="closeSettingsButton">Close Settings</button>
+    </div>
+  </div>
+  <div id="mainControls">
+    <button id="generateCardButton">Generate New Card</button>
+  </div>
+  <div id="cardSizeDisplay"></div>
+  <div id="bingoCard"></div>
+  <div id="gradeDisplay"></div>
+  <div id="rolledModifiersDisplay" style="margin-top:10px;"></div>
+  <div id="rolledEffectsDisplay" style="margin-top:10px;"></div>
+  <div id="slotMachine">
+    <div class="reel" id="reel1">?</div>
+    <div class="reel" id="reel2">?</div>
+    <div class="reel" id="reel3">?</div>
+  </div>
+  <audio id="spinSound"><source src="https://www.myinstants.com/media/sounds/spinning-wheel" type="audio/mpeg"></audio>
+  <audio id="revealSound"><source src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_12a42400c4.mp3" type="audio/mpeg"></audio>
+  <audio id="soundSuperRare"><source src="https://www.myinstants.com/media/sounds/challenge_complete_uHsY1YS.mp3" type="audio/mpeg"></audio>
+  <audio id="soundRare"><source src="https://www.myinstants.com/media/sounds/nintendo-game-boy-startup.mp3" type="audio/mpeg"></audio>
+  <audio id="soundUncommon"><source src="https://www.myinstants.com/media/sounds/orb.mp3" type="audio/mpeg"></audio>
+  <audio id="soundCommon"><source src="https://www.myinstants.com/media/sounds/minecraft_hit_soundmp3converter.mp3" type="audio/mpeg"></audio>
+  <audio id="soundVeryCommon"><source src="https://www.myinstants.com/media/sounds/hitmarker_lPlclg2.mp3" type="audio/mpeg"></audio>
 
-  document.addEventListener("keydown", (e) => {
-    if (e.key.toLowerCase() === "c" && currentlyHoveredCell) {
-      const textToCopy = currentlyHoveredCell.dataset.itemText || currentlyHoveredCell.textContent.trim();
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        showCopyPopup(`Copied: "${textToCopy}"`);
-      }).catch(err => {
-        console.error("Clipboard write failed:", err);
-      });
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    /********** GLOBAL CONFIGURATION **********/
+    const categoryMapping = {
+      "Very Common": { value:2, color:"#FFD700", textColor:"#000" , score:0.5},
+      "Common":      { value:1, color:"#FFF"   , textColor:"#000" , score:1},
+      "Uncommon":    { value:0.5,color:"#32CD32", textColor:"#FFF" , score:2},
+      "Rare":        { value:0.01,color:"#1E90FF", textColor:"#FFF" , score:3},
+      "Super Rare":  { value:0.001,color:"#8A2BE2", textColor:"#FFF", score:5}
+    };
+    const fullItemsString = `STONE
+DIORITE
+GRANITE
+...`; // your full list here
+    const fullItemsArray = fullItemsString.split("\n").map(s=>s.trim()).filter(s=>s);
+    const defaultRarityMapping = { "STONE":"Very Common", /* etc. */ };
+    let workingRarityMapping = {};
+    fullItemsArray.forEach(item=> workingRarityMapping[item]= defaultRarityMapping[item]||"Common");
+
+    /********** MODIFIERS & EFFECTS **********/
+    const modOptions = {
+      "Difficulty":["Easy","Normal","Hard"],
+      "Full Card":["Yes","No","Lockout"],
+      "Hardcore":["Yes","No"],
+      "Random Teleport":["Yes","No"],
+      "PvP Enabled":["Yes","No"],
+      "Keep Inventory":["Yes","No"],
+      "Daylight Cycle":["Yes","No"],
+      "Mob Spawning":["Yes","No"],
+      "Tickspeed":["1","3","5","10"],
+      "Random Teams":["Yes","No"]
+    };
+    function buildModifierSettings() {
+      const c=document.getElementById("modifierSettingsList"); c.innerHTML="";
+      for(let m in modOptions){
+        const row=document.createElement("div");row.className="modRow";
+        const lab=document.createElement("label");lab.innerText=m+":";
+        const sel=document.createElement("select");sel.id="mod_"+m.replace(/\s+/g,"");
+        ["Yes","No"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o)});
+        sel.value="Yes";
+        row.append(lab,sel);c.appendChild(row);
+      }
     }
+    const effectList=["speed","slow","fast_digging","slow_digging","jump","confusion","damage_resistance","fire_resistance","water_breathing","invisibility","blindness","night_vision","hunger","weakness","poison","wither","glowing","slow_falling","darkness","regeneration","dolphins_grace"];
+    
+    /********** CARD GENERATION **********/
+    const fixedCategoryProbabilities={"Very Common":0.5,"Common":0.3,"Uncommon":0.149,"Rare":0.05,"Super Rare":0.001};
+    function rollRarityCategory(){let r=Math.random(),c=0;for(let cat in fixedCategoryProbabilities){c+=fixedCategoryProbabilities[cat];if(r< c) return cat;}return "Common";}
+    function generateCardArray(size){ let pool=fullItemsArray.slice(),card=[],score=0;
+      for(let i=0;i<size;i++){card[i]=[];for(let j=0;j<size;j++){let cat=rollRarityCategory();let avail=pool.filter(x=>defaultRarityMapping[x]===cat),it=avail.length?avail[Math.floor(Math.random()*avail.length)]:pool[Math.floor(Math.random()*pool.length)];if(!avail.length)cat=defaultRarityMapping[it]||"Common";pool.splice(pool.indexOf(it),1);card[i][j]={item:it,category:cat};score+=categoryMapping[cat].score;}}
+      card._score=score;return card;
+    }
+    function computeCardGrade(card,size){const max=5*size*size,ratio=card._score/max;return ratio>=0.8?"Legendary Card":ratio>=0.6?"Epic Card":ratio>=0.4?"Rare Card":ratio>=0.2?"Common Card":"Very Common Card";}
+    function buildCardTable(card){const table=document.createElement("table");for(let i=0;i<card.length;i++){const tr=document.createElement("tr");card[i].forEach(c=>{const td=document.createElement("td");td.innerText="";tr.appendChild(td);});table.appendChild(tr);}document.getElementById("bingoCard").innerHTML="";document.getElementById("bingoCard").appendChild(table);return table;}
+    async function revealCardSequentially(card,table){const size=card.length,cells=table.getElementsByTagName("td");for(let i=0;i<size;i++)for(let j=0;j<size;j++)await revealCell(cells[i*size+j],card[i][j].item,card[i][j].category,500);
+    }
+    function revealCell(cell, item, cat, tm){return new Promise(res=>{const start=Date.now(),iv=setInterval(()=>{if(Date.now()-start>=tm){clearInterval(iv);cell.innerHTML=item+"<br><span style='font-size:10px;'>"+cat+"</span>";cell.style.backgroundColor=categoryMapping[cat].color;cell.style.color=categoryMapping[cat].textColor;try{const snd=document.getElementById({"Super Rare":"soundSuperRare","Rare":"soundRare","Uncommon":"soundUncommon","Common":"soundCommon","Very Common":"soundVeryCommon"}[cat]);snd&& (snd.currentTime=0, snd.play());}catch(e){}res();} else {cell.innerText=fullItemsArray[Math.floor(Math.random()*fullItemsArray.length)];}} ,50);});}
+    async function animateSlotMachine(finalSize){return new Promise(res=>{const sm=document.getElementById("slotMachine");sm.style.display="block";const r1=document.getElementById("reel1"),r2=document.getElementById("reel2"),r3=document.getElementById("reel3"),sizes=[1,2,3,4,5,6,7,8,9,10];const iv=setInterval(()=>{r1.innerText=sizes[Math.floor(Math.random()*sizes.length)]+"×"+sizes[Math.floor(Math.random()*sizes.length)];r2.innerText=sizes[Math.floor(Math.random()*sizes.length)]+"×"+sizes[Math.floor(Math.random()*sizes.length)];r3.innerText=sizes[Math.floor(Math.random()*sizes.length)]+"×"+sizes[Math.floor(Math.random()*sizes.length)];},100);setTimeout(()=>{clearInterval(iv);["reel1","reel2","reel3"].forEach(id=>document.getElementById(id).innerText=finalSize+"×"+finalSize);try{const s=document.getElementById("spinSound");s&&(s.currentTime=0, s.play());}catch(e){}setTimeout(()=>{sm.style.display="none";res(finalSize);},500);},2000);});}
+    async function getCardSize(){if(document.getElementById("randomCardSizeCheckbox").checked){const ws=[{size:1,w:1},{size:2,w:2},{size:3,w:4},{size:4,w:8},{size:5,w:20},{size:6,w:8},{size:7,w:4},{size:8,w:2},{size:9,w:1},{size:10,w:0.5}];const total=ws.reduce((a,s)=>a+s.w,0);let r=Math.random()*total,chosen;for(const s of ws){if((r-=s.w)<0){chosen=s.size;break;}}return await animateSlotMachine(chosen);} else return parseInt(document.getElementById("manualSizeSelect").value);
+    }
+
+    /********** MAIN & SETTINGS **********/
+    async function main(){document.getElementById("generateCardButton").disabled=true;document.getElementById("gradeDisplay").innerText="";document.getElementById("cardSizeDisplay").innerText="";document.getElementById("bingoCard").innerHTML="";document.getElementById("rolledModifiersDisplay").innerHTML="";document.getElementById("rolledEffectsDisplay").innerHTML="";
+      const size=await getCardSize();document.getElementById("cardSizeDisplay").innerText=`Card Size: ${size}×${size}`;const card=generateCardArray(size),table=buildCardTable(card);await revealCardSequentially(card,table);document.getElementById("gradeDisplay").innerText=`Card Rarity Grade: ${computeCardGrade(card,size)}`;
+      if(document.getElementById("globalModifierToggle").value==="Yes"){const mods=rollModifiersEnabled();await animateModifiers(mods);}else document.getElementById("rolledModifiersDisplay").innerText="Modifiers disabled";
+      if(document.getElementById("randomEffectsDropdown").value==="Yes"){const eff=rollEffects();await animateEffects(eff);}else document.getElementById("rolledEffectsDisplay").innerText="Effects: None";
+      document.getElementById("generateCardButton").disabled=false;
+    }
+    function buildRarityEditor(){const list=document.getElementById("rarityList");list.innerHTML="";fullItemsArray.forEach(item=>{const row=document.createElement("div");row.className="itemRow";const lab=document.createElement("label");lab.innerText=item;const dd=document.createElement("select");dd.className="rarityDropdown";dd.dataset.item=item;for(const cat in categoryMapping){const o=document.createElement("option");o.value=cat;o.textContent=cat;if(cat===workingRarityMapping[item])o.selected=true;dd.appendChild(o);}row.append(lab,dd);list.appendChild(row);} )}
+    function saveRarities(){document.querySelectorAll(".rarityDropdown").forEach(dd=>{workingRarityMapping[dd.dataset.item]=dd.value;defaultRarityMapping[dd.dataset.item]=dd.value;});alert("Rarity values saved!");console.log(workingRarityMapping);}    
+    function toggleSettings(){const p=document.getElementById("settingsPanel");p.style.display=(p.style.display===""||p.style.display==="none")?"block":"none";}    
+    function closeSettings(){document.getElementById("settingsPanel").style.display="none";}    
+    document.getElementById("settingsButton").addEventListener("click",toggleSettings);
+    document.getElementById("closeSettingsButton").addEventListener("click",closeSettings);
+    document.getElementById("generateCardButton").addEventListener("click",main);
+    document.getElementById("editRaritiesButton").addEventListener("click",buildRarityEditor);
+    document.getElementById("saveRaritiesButton").addEventListener("click",saveRarities);
+    document.getElementById("randomCardSizeCheckbox").addEventListener("change",function(){
+      document.getElementById("manualSizeSelect").style.display=this.checked?"none":"inline-block";
+    });
+    buildModifierSettings();
+    window.rollRarityCategory=rollRarityCategory;
+    window.fullItemsArray=fullItemsArray;
+    window.defaultRarityMapping=defaultRarityMapping;
+    window.categoryMapping=categoryMapping;
+
+    /********** REROLL & COPY HANDLERS **********/
+    function rerollCell(cell) {
+      const t0=Date.now();
+      const newCat=rollRarityCategory();
+      const ava=fullItemsArray.filter(i=>defaultRarityMapping[i]===newCat);
+      const itm=ava.length?ava[Math.floor(Math.random()*ava.length)]:fullItemsArray[Math.floor(Math.random()*fullItemsArray.length)];
+      const iv=setInterval(()=>{
+        if(Date.now()-t0>=500) {
+          clearInterval(iv);
+          cell.innerHTML=`${itm}<br><span style=\"font-size:10px;\">${newCat}</span>`;
+          cell.style.backgroundColor=categoryMapping[newCat].color;
+          cell.style.color=categoryMapping[newCat].textColor;
+          cell.dataset.itemText=itm;
+          try{const snd=document.getElementById({"Super Rare":"soundSuperRare","Rare":"soundRare","Uncommon":"soundUncommon","Common":"soundCommon","Very Common":"soundVeryCommon"}[newCat]);snd&&(snd.currentTime=0,snd.play());}catch{}      
+        } else {
+          cell.innerText=fullItemsArray[Math.floor(Math.random()*fullItemsArray.length)];
+        }
+      },50);
+    }
+    document.addEventListener("click",e=>{
+      const td=e.target.closest("#bingoCard td");
+      if(td) { td.style.pointerEvents="none"; rerollCell(td); setTimeout(()=>td.style.pointerEvents="auto",600); }
+    });
+    let hovered=null;
+    document.addEventListener("mouseover",e=>{ if(e.target.closest("#bingoCard td")) hovered=e.target; });
+    document.addEventListener("mouseout",e=>{ if(e.target===hovered) hovered=null; });
+    document.addEventListener("keydown",e=>{
+      if(e.key.toLowerCase()==="c"&&hovered) {
+        const txt=hovered.dataset.itemText||hovered.textContent.trim();
+        navigator.clipboard.writeText(txt).then(()=>showCopyPopup(`Copied: \"${txt}\"`)).catch(console.error);
+      }
+    });
+    function showCopyPopup(msg){
+      const p=document.createElement("div");Object.assign(p.style,{position:"fixed",bottom:"20px",left:"50%",transform:"translateX(-50%)",background:"rgba(0,0,0,0.8)",color:"#fff",padding:"8px 16px",borderRadius:"6px",opacity:"0",transition:"opacity 0.3s",zIndex:"9999"});p.textContent=msg;document.body.appendChild(p);requestAnimationFrame(()=>p.style.opacity="1");setTimeout(()=>{p.style.opacity="0";setTimeout(()=>p.remove(),300);},1400);}
+
   });
-
-  function showCopyPopup(message) {
-    const popup = document.createElement("div");
-    popup.textContent = message;
-    popup.style.position = "fixed";
-    popup.style.bottom = "20px";
-    popup.style.left = "50%";
-    popup.style.transform = "translateX(-50%)";
-    popup.style.background = "rgba(0,0,0,0.8)";
-    popup.style.color = "white";
-    popup.style.padding = "10px 20px";
-    popup.style.borderRadius = "8px";
-    popup.style.fontSize = "14px";
-    popup.style.zIndex = "9999";
-    popup.style.opacity = "0";
-    popup.style.transition = "opacity 0.3s";
-
-    document.body.appendChild(popup);
-    requestAnimationFrame(() => { popup.style.opacity = "1"; });
-    setTimeout(() => {
-      popup.style.opacity = "0";
-      setTimeout(() => { popup.remove(); }, 300);
-    }, 1500);
-  }
-});
+  </script>
 </body>
 </html>
