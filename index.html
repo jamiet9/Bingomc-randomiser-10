@@ -2079,7 +2079,6 @@ LIGHTNING_ROD`;
         "LIGHTNING_ROD": "Common"
       };
 
- <script>
 document.addEventListener("DOMContentLoaded", function() {
 
   /********** WORKING RARITY MAPPING **********/
@@ -2102,84 +2101,138 @@ document.addEventListener("DOMContentLoaded", function() {
     "Random Teams":    ["Yes","No"]
   };
   function buildModifierSettings() {
-    const container = document.getElementById("modifierSettingsList");
-    container.innerHTML = "";
+    const list = document.getElementById("modifierSettingsList");
+    list.innerHTML = "";
     for (let mod in modOptions) {
-      const row = document.createElement("div"); row.className = "modRow";
-      const label = document.createElement("label"); label.innerText = mod + ":";
-      const sel   = document.createElement("select"); sel.id = "mod_" + mod.replace(/\s+/g,"");
+      const row = document.createElement("div");
+      row.className = "modRow";
+      const label = document.createElement("label");
+      label.innerText = mod + ":";
+      const sel = document.createElement("select");
+      sel.id = "mod_" + mod.replace(/\s+/g,"");
       ["Yes","No"].forEach(v => {
-        const o = document.createElement("option"); o.value = v; o.textContent = v;
+        const o = document.createElement("option");
+        o.value = v; o.textContent = v;
         sel.appendChild(o);
       });
       sel.value = "Yes";
       row.append(label, sel);
-      container.appendChild(row);
+      list.appendChild(row);
     }
   }
 
-  /********** EFFECT SETTINGS **********/
-  const effectList = ["speed","slow","fast_digging","slow_digging","jump","confusion","damage_resistance","fire_resistance","water_breathing","invisibility","blindness","night_vision","hunger","weakness","poison","wither","glowing","slow_falling","darkness","regeneration","dolphins_grace"];
-  function rollEffects(){
-    const res = [];
-    while (Math.random()<0.5) {
-      const e = effectList[Math.floor(Math.random()*effectList.length)];
-      res.push(e+" "+(Math.floor(Math.random()*10)+1));
-    }
-    return res.length?res:["None"];
+  /********** MODIFIER ROLLING **********/
+  function rollSingleModifier(modName) {
+    const choices = modOptions[modName];
+    return choices[Math.floor(Math.random() * choices.length)];
   }
-  function animateEffects(effects){
-    const d = document.getElementById("rolledEffectsDisplay"); d.innerHTML="";
-    return new Promise(r => {
-      let i=0;
-      function next(){
-        if(i<effects.length){
-          const p = document.createElement("p"); p.innerText = effects[i++];
-          d.appendChild(p);
-          setTimeout(next,300);
-        } else r();
+  function rollModifiersEnabled() {
+    const res = {};
+    for (let mod in modOptions) {
+      const sel = document.getElementById("mod_" + mod.replace(/\s+/g,""));
+      if (sel && sel.value === "Yes") {
+        res[mod] = rollSingleModifier(mod);
+      }
+    }
+    return res;
+  }
+  function animateModifiers(mods) {
+    const display = document.getElementById("rolledModifiersDisplay");
+    display.innerHTML = "";
+    return new Promise(resolve => {
+      const keys = Object.keys(mods);
+      let i = 0;
+      function next() {
+        if (i < keys.length) {
+          const p = document.createElement("p");
+          p.innerText = keys[i] + ": " + mods[keys[i]];
+          display.appendChild(p);
+          i++;
+          setTimeout(next, 300);
+        } else {
+          resolve();
+        }
+      }
+      keys.length ? next() : (display.innerText = "No modifiers rolled.", resolve());
+    });
+  }
+
+  /********** EFFECT ROLLING **********/
+  const effectList = [
+    "speed","slow","fast_digging","slow_digging","jump","confusion",
+    "damage_resistance","fire_resistance","water_breathing","invisibility",
+    "blindness","night_vision","hunger","weakness","poison","wither",
+    "glowing","slow_falling","darkness","regeneration","dolphins_grace"
+  ];
+  function rollEffects() {
+    const res = [];
+    while (Math.random() < 0.5) {
+      const e = effectList[Math.floor(Math.random() * effectList.length)];
+      const lvl = Math.floor(Math.random() * 10) + 1;
+      res.push(e + " " + lvl);
+    }
+    return res.length ? res : ["None"];
+  }
+  function animateEffects(effects) {
+    const display = document.getElementById("rolledEffectsDisplay");
+    display.innerHTML = "";
+    return new Promise(resolve => {
+      let i = 0;
+      function next() {
+        if (i < effects.length) {
+          const p = document.createElement("p");
+          p.innerText = effects[i++];
+          display.appendChild(p);
+          setTimeout(next, 300);
+        } else resolve();
       }
       next();
     });
   }
 
-  /********** CARD LOGIC (unchanged) **********/
-  // rollRarityCategory, generateCardArray, computeCardGrade,
-  // buildCardTable, revealCell, revealCardSequentially,
-  // animateSlotMachine, getCardSize, main, buildRarityEditor,
-  // saveRarities, toggleSettings, closeSettings, rollModifiersEnabled,
-  // animateModifiers
-  // (Copy these from your existing code exactly.)
+  /********** CARD GENERATION & REVEAL **********/
+  // (rollRarityCategory, generateCardArray, computeCardGrade,
+  //  buildCardTable, revealCell, revealCardSequentially,
+  //  animateSlotMachine, getCardSize remain unchanged)
 
-  // Build modifier UI and expose globals:
+  /********** MAIN FUNCTION & SETTINGS HANDLERS **********/
+  // (main, buildRarityEditor, saveRarities,
+  //  toggleSettings, closeSettings, event listeners for buttons,
+  //  change listener for randomCardSizeCheckbox remain unchanged)
+
+  // build modifier UI and expose globals
   buildModifierSettings();
-  window.rollRarityCategory   = rollRarityCategory;
-  window.fullItemsArray       = fullItemsArray;
-  window.defaultRarityMapping = defaultRarityMapping;
-  window.categoryMapping      = categoryMapping;
+  window.rollRarityCategory     = rollRarityCategory;
+  window.fullItemsArray         = fullItemsArray;
+  window.defaultRarityMapping   = defaultRarityMapping;
+  window.categoryMapping        = categoryMapping;
 
   /********** REROLL-ON-CLICK **********/
   function rerollCell(cell) {
     const start = Date.now(), duration = 500;
     const newCat = rollRarityCategory();
-    const pool   = fullItemsArray.filter(i=>defaultRarityMapping[i]===newCat);
-    const itm    = pool.length
-      ? pool[Math.floor(Math.random()*pool.length)]
-      : fullItemsArray[Math.floor(Math.random()*fullItemsArray.length)];
-
-    const iv = setInterval(()=>{
+    const pool = fullItemsArray.filter(i => defaultRarityMapping[i] === newCat);
+    const itm = pool.length
+      ? pool[Math.floor(Math.random() * pool.length)]
+      : fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
+    const iv = setInterval(() => {
       if (Date.now() - start >= duration) {
         clearInterval(iv);
         cell.innerHTML = `${itm}<br><span style="font-size:10px;">${newCat}</span>`;
         cell.style.backgroundColor = categoryMapping[newCat].color;
         cell.style.color           = categoryMapping[newCat].textColor;
         cell.dataset.itemText      = itm;
-        // Play sound
-        const id = {"Super Rare":"soundSuperRare","Rare":"soundRare","Uncommon":"soundUncommon","Common":"soundCommon","Very Common":"soundVeryCommon"}[newCat];
-        const s  = document.getElementById(id);
-        if(s){ s.currentTime=0; s.play(); }
+        const sndId = {
+          "Super Rare":"soundSuperRare",
+          "Rare":"soundRare",
+          "Uncommon":"soundUncommon",
+          "Common":"soundCommon",
+          "Very Common":"soundVeryCommon"
+        }[newCat];
+        const snd = document.getElementById(sndId);
+        if (snd) { snd.currentTime = 0; snd.play(); }
       } else {
-        cell.innerText = fullItemsArray[Math.floor(Math.random()*fullItemsArray.length)];
+        cell.innerText = fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
       }
     }, 50);
   }
@@ -2188,41 +2241,46 @@ document.addEventListener("DOMContentLoaded", function() {
     if (!td) return;
     td.style.pointerEvents = "none";
     rerollCell(td);
-    setTimeout(()=>td.style.pointerEvents="auto",600);
+    setTimeout(() => td.style.pointerEvents = "auto", 600);
   });
 
-  /********** COPY-ON-HOVER + “C” **********/
+  /********** COPY-ON-HOVER + “C” KEY **********/
   let hovered = null;
   document.addEventListener("mouseover", e => {
-    if(e.target.closest("#bingoCard td")) hovered = e.target;
+    if (e.target.closest("#bingoCard td")) hovered = e.target;
   });
   document.addEventListener("mouseout", e => {
-    if(e.target === hovered) hovered = null;
+    if (e.target === hovered) hovered = null;
   });
   document.addEventListener("keydown", e => {
-    if(e.key.toLowerCase()==="c" && hovered) {
-      const txt = hovered.dataset.itemText||hovered.textContent.trim();
+    if (e.key.toLowerCase() === "c" && hovered) {
+      const txt = hovered.dataset.itemText || hovered.textContent.trim();
       navigator.clipboard.writeText(txt)
-        .then(()=>showCopyPopup(`Copied: \"${txt}\"`))
+        .then(() => showCopyPopup(`Copied: "${txt}"`))
         .catch(console.error);
     }
   });
-  function showCopyPopup(msg){
-    const p = document.createElement("div");
-    Object.assign(p.style,{
-      position:"fixed",bottom:"20px",left:"50%",
-      transform:"translateX(-50%)",
-      background:"rgba(0,0,0,0.8)",color:"#fff",
-      padding:"8px 16px",borderRadius:"6px",
-      opacity:"0",transition:"opacity 0.3s",zIndex:"9999"
+  function showCopyPopup(msg) {
+    const pop = document.createElement("div");
+    Object.assign(pop.style, {
+      position: "fixed",
+      bottom: "20px", left: "50%",
+      transform: "translateX(-50%)",
+      background: "rgba(0,0,0,0.8)",
+      color: "#fff",
+      padding: "8px 16px",
+      borderRadius: "6px",
+      opacity: "0",
+      transition: "opacity 0.3s",
+      zIndex: "9999"
     });
-    p.textContent = msg;
-    document.body.appendChild(p);
-    requestAnimationFrame(()=>p.style.opacity="1");
-    setTimeout(()=>{
-      p.style.opacity="0";
-      setTimeout(()=>p.remove(),300);
-    },1400);
+    pop.textContent = msg;
+    document.body.appendChild(pop);
+    requestAnimationFrame(() => pop.style.opacity = "1");
+    setTimeout(() => {
+      pop.style.opacity = "0";
+      setTimeout(() => pop.remove(), 300);
+    }, 1400);
   }
 
 }); // end DOMContentLoaded
