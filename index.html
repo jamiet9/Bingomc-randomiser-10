@@ -2079,6 +2079,7 @@ LIGHTNING_ROD`;
         "LIGHTNING_ROD": "Common"
       };
 
+<script>
 document.addEventListener("DOMContentLoaded", function() {
 
   /********** WORKING RARITY MAPPING **********/
@@ -2190,17 +2191,15 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  /********** CARD GENERATION & REVEAL **********/
-  // (rollRarityCategory, generateCardArray, computeCardGrade,
-  //  buildCardTable, revealCell, revealCardSequentially,
-  //  animateSlotMachine, getCardSize remain unchanged)
+  /********** --- KEEP ALL YOUR EXISTING CARD FUNCTIONS HERE --- **********/
+  // rollRarityCategory, generateCardArray, computeCardGrade,
+  // buildCardTable, revealCell, revealCardSequentially,
+  // animateSlotMachine, getCardSize, main,
+  // buildRarityEditor, saveRarities, toggleSettings, closeSettings,
+  // plus any event‐listeners for your buttons.
+  // (Copy these *exactly* from your original code.)
 
-  /********** MAIN FUNCTION & SETTINGS HANDLERS **********/
-  // (main, buildRarityEditor, saveRarities,
-  //  toggleSettings, closeSettings, event listeners for buttons,
-  //  change listener for randomCardSizeCheckbox remain unchanged)
-
-  // build modifier UI and expose globals
+  // Build modifier UI and expose globals
   buildModifierSettings();
   window.rollRarityCategory     = rollRarityCategory;
   window.fullItemsArray         = fullItemsArray;
@@ -2212,9 +2211,10 @@ document.addEventListener("DOMContentLoaded", function() {
     const start = Date.now(), duration = 500;
     const newCat = rollRarityCategory();
     const pool = fullItemsArray.filter(i => defaultRarityMapping[i] === newCat);
-    const itm = pool.length
+    const itm  = pool.length
       ? pool[Math.floor(Math.random() * pool.length)]
       : fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
+
     const iv = setInterval(() => {
       if (Date.now() - start >= duration) {
         clearInterval(iv);
@@ -2266,13 +2266,9 @@ document.addEventListener("DOMContentLoaded", function() {
       position: "fixed",
       bottom: "20px", left: "50%",
       transform: "translateX(-50%)",
-      background: "rgba(0,0,0,0.8)",
-      color: "#fff",
-      padding: "8px 16px",
-      borderRadius: "6px",
-      opacity: "0",
-      transition: "opacity 0.3s",
-      zIndex: "9999"
+      background: "rgba(0,0,0,0.8)", color: "#fff",
+      padding: "8px 16px", borderRadius: "6px",
+      opacity: "0", transition: "opacity 0.3s", zIndex: "9999"
     });
     pop.textContent = msg;
     document.body.appendChild(pop);
