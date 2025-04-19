@@ -2395,205 +2395,196 @@ LIGHTNING_ROD`;
   }
 }
 
-      
-      /********** MAIN GENERATION FUNCTION **********/
-      async function main() {
-        document.getElementById("generateCardButton").disabled = true;
-        document.getElementById("gradeDisplay").innerText = "";
-        document.getElementById("cardSizeDisplay").innerText = "";
-        document.getElementById("bingoCard").innerHTML = "";
-        document.getElementById("rolledModifiersDisplay").innerHTML = "";
-        document.getElementById("rolledEffectsDisplay").innerHTML = "";
-        let size = await getCardSize();
-        document.getElementById("cardSizeDisplay").innerText = `Card Size: ${size}×${size}`;
-        let card = generateCardArray(size);
-        let table = buildCardTable(card);
-        await revealCardSequentially(card, table);
-        let grade = computeCardGrade(card, size);
-        document.getElementById("gradeDisplay").innerText = `Card Rarity Grade: ${grade}`;
-        
-        // Roll and animate modifiers if global toggle is Yes.
-        if (document.getElementById("globalModifierToggle").value === "Yes") {
-          let mods = rollModifiersEnabled();
-          await animateModifiers(mods);
-        } else {
-          document.getElementById("rolledModifiersDisplay").innerText = "Modifiers disabled";
-        }
-        
-        // Roll and animate effects if the effects dropdown is Yes.
-        if (document.getElementById("randomEffectsDropdown").value === "Yes") {
-          let effects = rollEffects();
-          await animateEffects(effects);
-        } else {
-          document.getElementById("rolledEffectsDisplay").innerText = "Effects: None";
-        }
-        
-        document.getElementById("generateCardButton").disabled = false;
-      }
-      
-      /********** RARITY EDITOR FUNCTIONS **********/
-      function buildRarityEditor() {
-        let list = document.getElementById("rarityList");
-        list.innerHTML = "";
-        fullItemsArray.forEach(item => {
-          let row = document.createElement("div");
-          row.className = "itemRow";
-          let label = document.createElement("label");
-          label.innerText = item;
-          let currentVal = workingRarityMapping[item];
-          let dropdown = document.createElement("select");
-          dropdown.className = "rarityDropdown";
-          dropdown.dataset.item = item;
-          for (let cat in categoryMapping) {
-            let opt = document.createElement("option");
-            opt.value = cat;
-            opt.textContent = cat;
-            if (cat === currentVal) { opt.selected = true; }
-            dropdown.appendChild(opt);
-          }
-          row.appendChild(label);
-          row.appendChild(dropdown);
-          list.appendChild(row);
-        });
-      }
-      
-      function saveRarities() {
-        document.querySelectorAll(".rarityDropdown").forEach(dropdown => {
-          let item = dropdown.dataset.item;
-          let chosenCat = dropdown.value;
-          workingRarityMapping[item] = chosenCat;
-          defaultRarityMapping[item] = chosenCat;
-        });
-        alert("Rarity values saved!");
-        console.log("Updated rarity mapping:", workingRarityMapping);
-      }
-      
-      /********** SETTINGS PANEL HANDLERS **********/
-      function toggleSettings() {
-        let panel = document.getElementById("settingsPanel");
-        panel.style.display = (panel.style.display === "none" || panel.style.display === "") ? "block" : "none";
-      }
-      function closeSettings() {
-        document.getElementById("settingsPanel").style.display = "none";
-      }
-      
-      /********** EVENT LISTENERS **********/
-      document.getElementById("settingsButton").addEventListener("click", toggleSettings);
-      document.getElementById("closeSettingsButton").addEventListener("click", closeSettings);
-      document.getElementById("generateCardButton").addEventListener("click", main);
-      document.getElementById("editRaritiesButton").addEventListener("click", buildRarityEditor);
-      document.getElementById("saveRaritiesButton").addEventListener("click", saveRarities);
-      document.getElementById("randomCardSizeCheckbox").addEventListener("change", function(){
-        if(this.checked){
-          document.getElementById("manualSizeSelect").style.display = "none";
-        } else {
-          document.getElementById("manualSizeSelect").style.display = "inline-block";
-        }
-      });
-      
-      // Build Modifier Settings UI on load
-      buildModifierSettings();
-      window.rollRarityCategory = rollRarityCategory;
-window.fullItemsArray = fullItemsArray;
-window.defaultRarityMapping = defaultRarityMapping;
-window.categoryMapping = categoryMapping;
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  /********** MAIN GENERATION FUNCTION **********/
+  async function main() {
+    document.getElementById("generateCardButton").disabled = true;
+    document.getElementById("gradeDisplay").innerText = "";
+    document.getElementById("cardSizeDisplay").innerText = "";
+    document.getElementById("bingoCard").innerHTML = "";
+    document.getElementById("rolledModifiersDisplay").innerHTML = "";
+    document.getElementById("rolledEffectsDisplay").innerHTML = "";
 
-    }); // End DOMContentLoaded
+    let size = await getCardSize();
+    document.getElementById("cardSizeDisplay").innerText = `Card Size: ${size}×${size}`;
+    let card = generateCardArray(size);
+    let table = buildCardTable(card);
+    await revealCardSequentially(card, table);
+    let grade = computeCardGrade(card, size);
+    document.getElementById("gradeDisplay").innerText = `Card Rarity Grade: ${grade}`;
 
-document.addEventListener("DOMContentLoaded", function() {
-  // Expose required functions/variables if they aren’t already global.
-  if (typeof rollRarityCategory !== "function") {
-    console.warn("rollRarityCategory not found. Make sure you expose it from your main code.");
-  }
-  if (typeof fullItemsArray === "undefined") {
-    console.warn("fullItemsArray not found. Make sure you expose it from your main code.");
-  }
-  if (typeof defaultRarityMapping === "undefined") {
-    console.warn("defaultRarityMapping not found. Make sure you expose it from your main code.");
-  }
-  if (typeof categoryMapping === "undefined") {
-    console.warn("categoryMapping not found. Make sure you expose it from your main code.");
-  }
-  
-  // Reroll functionality assumes that the necessary functions/variables are available.
-  (function() {
-    function rerollCell(cellElem) {
-      const revealTime = 500;
-      const startTime = Date.now();
-      const newCategory = rollRarityCategory();
-      const available = fullItemsArray.filter(item => defaultRarityMapping[item] === newCategory);
-      const newItem = (available.length > 0)
-        ? available[Math.floor(Math.random() * available.length)]
-        : fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
+    if (document.getElementById("globalModifierToggle").value === "Yes") {
+      let mods = rollModifiersEnabled();
+      await animateModifiers(mods);
+    } else {
+      document.getElementById("rolledModifiersDisplay").innerText = "Modifiers disabled";
+    }
 
-      const interval = setInterval(() => {
-        if (Date.now() - startTime >= revealTime) {
-          clearInterval(interval);
-          cellElem.innerHTML = newItem + "<br><span style='font-size:10px;'>" + newCategory + "</span>";
-          cellElem.style.backgroundColor = categoryMapping[newCategory].color;
-          cellElem.style.color = categoryMapping[newCategory].textColor;
-          try {
-            if (newCategory === "Super Rare") {
-              document.getElementById("soundSuperRare").currentTime = 0;
-              document.getElementById("soundSuperRare").play();
-            } else if (newCategory === "Rare") {
-              document.getElementById("soundRare").currentTime = 0;
-              document.getElementById("soundRare").play();
-            } else if (newCategory === "Uncommon") {
-              document.getElementById("soundUncommon").currentTime = 0;
-              document.getElementById("soundUncommon").play();
-            } else if (newCategory === "Common") {
-              document.getElementById("soundCommon").currentTime = 0;
-              document.getElementById("soundCommon").play();
-            } else if (newCategory === "Very Common") {
-              document.getElementById("soundVeryCommon").currentTime = 0;
-              document.getElementById("soundVeryCommon").play();
+    if (document.getElementById("randomEffectsDropdown").value === "Yes") {
+      let effects = rollEffects();
+      await animateEffects(effects);
+    } else {
+      document.getElementById("rolledEffectsDisplay").innerText = "Effects: None";
+    }
+
+    document.getElementById("generateCardButton").disabled = false;
+  }
+
+  /********** RARITY EDITOR FUNCTIONS **********/
+  function buildRarityEditor() {
+    let list = document.getElementById("rarityList");
+    list.innerHTML = "";
+    fullItemsArray.forEach(item => {
+      let row = document.createElement("div");
+      row.className = "itemRow";
+      let label = document.createElement("label");
+      label.innerText = item;
+      let currentVal = workingRarityMapping[item];
+      let dropdown = document.createElement("select");
+      dropdown.className = "rarityDropdown";
+      dropdown.dataset.item = item;
+      for (let cat in categoryMapping) {
+        let opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        if (cat === currentVal) { opt.selected = true; }
+        dropdown.appendChild(opt);
+      }
+      row.appendChild(label);
+      row.appendChild(dropdown);
+      list.appendChild(row);
+    });
+  }
+
+  function saveRarities() {
+    document.querySelectorAll(".rarityDropdown").forEach(dropdown => {
+      let item = dropdown.dataset.item;
+      let chosenCat = dropdown.value;
+      workingRarityMapping[item] = chosenCat;
+      defaultRarityMapping[item] = chosenCat;
+    });
+    alert("Rarity values saved!");
+    console.log("Updated rarity mapping:", workingRarityMapping);
+  }
+
+  /********** SETTINGS PANEL HANDLERS **********/
+  function toggleSettings() {
+    let panel = document.getElementById("settingsPanel");
+    panel.style.display = (panel.style.display === "none" || panel.style.display === "") ? "block" : "none";
+  }
+
+  function closeSettings() {
+    document.getElementById("settingsPanel").style.display = "none";
+  }
+
+  /********** EVENT LISTENERS **********/
+  document.getElementById("settingsButton").addEventListener("click", toggleSettings);
+  document.getElementById("closeSettingsButton").addEventListener("click", closeSettings);
+  document.getElementById("generateCardButton").addEventListener("click", main);
+  document.getElementById("editRaritiesButton").addEventListener("click", buildRarityEditor);
+  document.getElementById("saveRaritiesButton").addEventListener("click", saveRarities);
+  document.getElementById("randomCardSizeCheckbox").addEventListener("change", function () {
+    document.getElementById("manualSizeSelect").style.display = this.checked ? "none" : "inline-block";
+  });
+
+  // Build Modifier Settings UI on load
+  buildModifierSettings();
+
+  // Global references
+  window.rollRarityCategory = rollRarityCategory;
+  window.fullItemsArray = fullItemsArray;
+  window.defaultRarityMapping = defaultRarityMapping;
+  window.categoryMapping = categoryMapping;
+
+  /********** REROLL AND COPY HANDLERS **********/
+  function rerollCell(cellElem) {
+    const revealTime = 500;
+    const startTime = Date.now();
+    const newCategory = rollRarityCategory();
+    const available = fullItemsArray.filter(item => defaultRarityMapping[item] === newCategory);
+    const newItem = (available.length > 0)
+      ? available[Math.floor(Math.random() * available.length)]
+      : fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
+
+    const interval = setInterval(() => {
+      if (Date.now() - startTime >= revealTime) {
+        clearInterval(interval);
+        cellElem.innerHTML = newItem + "<br><span style='font-size:10px;'>" + newCategory + "</span>";
+        cellElem.style.backgroundColor = categoryMapping[newCategory].color;
+        cellElem.style.color = categoryMapping[newCategory].textColor;
+        cellElem.dataset.itemText = newItem + " (" + newCategory + ")";
+        try {
+          const soundMap = {
+            "Super Rare": "soundSuperRare",
+            "Rare": "soundRare",
+            "Uncommon": "soundUncommon",
+            "Common": "soundCommon",
+            "Very Common": "soundVeryCommon"
+          };
+          const soundId = soundMap[newCategory];
+          if (soundId) {
+            const soundElem = document.getElementById(soundId);
+            if (soundElem) {
+              soundElem.currentTime = 0;
+              soundElem.play();
             }
-          } catch(e) {
-            console.warn("Audio playback error:", e);
           }
-        } else {
-          cellElem.innerText = fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
+        } catch (e) {
+          console.warn("Audio playback error:", e);
         }
-      }, 50);
-    }
-
-    // Use event delegation to attach click events on the bingo card cells.
-    document.addEventListener("click", function(e) {
-      const cell = e.target;
-      if (cell.tagName === "TD" && cell.closest("#bingoCard")) {
-        // Change the cursor to indicate clickability (optional)
-        cell.style.cursor = "pointer";
-        cell.style.pointerEvents = "none";
-        rerollCell(cell);
-        setTimeout(() => { cell.style.pointerEvents = "auto"; }, 600);
+      } else {
+        cellElem.innerText = fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
       }
-      let currentlyHoveredCell = null;
+    }, 50);
+  }
 
-// Track hovered cell
-document.querySelectorAll(".bingo-cell").forEach(cell => {
-    cell.addEventListener("mouseenter", () => {
-        currentlyHoveredCell = cell;
-    });
-    cell.addEventListener("mouseleave", () => {
-        currentlyHoveredCell = null;
-    });
-});
-
-// Keydown listener for copying text
-document.addEventListener("keydown", (e) => {
-    if (e.key.toLowerCase() === "c" && currentlyHoveredCell) {
-        const textToCopy = currentlyHoveredCell.textContent.trim();
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            showCopyPopup(`Copied: "${textToCopy}"`);
-        }).catch(err => {
-            console.error("Clipboard write failed:", err);
-        });
+  // Delegate click event for reroll
+  document.addEventListener("click", function (e) {
+    const cell = e.target;
+    if (cell.tagName === "TD" && cell.closest("#bingoCard")) {
+      cell.style.pointerEvents = "none";
+      rerollCell(cell);
+      setTimeout(() => { cell.style.pointerEvents = "auto"; }, 600);
     }
-});
+  });
 
-// Create and show a popup
-function showCopyPopup(message) {
+  // Apply hover styles immediately on generation
+  const style = document.createElement("style");
+  style.innerHTML = `
+    #bingoCard td {
+      cursor: pointer;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Copy to clipboard on "C" key while hovering
+  let currentlyHoveredCell = null;
+
+  document.addEventListener("mouseover", function (e) {
+    if (e.target.tagName === "TD" && e.target.closest("#bingoCard")) {
+      currentlyHoveredCell = e.target;
+    }
+  });
+
+  document.addEventListener("mouseout", function (e) {
+    if (e.target === currentlyHoveredCell) {
+      currentlyHoveredCell = null;
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "c" && currentlyHoveredCell) {
+      const textToCopy = currentlyHoveredCell.dataset.itemText || currentlyHoveredCell.textContent.trim();
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        showCopyPopup(`Copied: "${textToCopy}"`);
+      }).catch(err => {
+        console.error("Clipboard write failed:", err);
+      });
+    }
+  });
+
+  function showCopyPopup(message) {
     const popup = document.createElement("div");
     popup.textContent = message;
     popup.style.position = "fixed";
@@ -2610,23 +2601,14 @@ function showCopyPopup(message) {
     popup.style.transition = "opacity 0.3s";
 
     document.body.appendChild(popup);
-
-    // Fade in
-    requestAnimationFrame(() => {
-        popup.style.opacity = "1";
-    });
-
-    // Fade out and remove
+    requestAnimationFrame(() => { popup.style.opacity = "1"; });
     setTimeout(() => {
-        popup.style.opacity = "0";
-        setTimeout(() => {
-            popup.remove();
-        }, 300);
+      popup.style.opacity = "0";
+      setTimeout(() => { popup.remove(); }, 300);
     }, 1500);
-}
-    });
-  })();
+  }
 });
 </script>
 </body>
 </html>
+
