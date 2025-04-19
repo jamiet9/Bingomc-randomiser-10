@@ -2079,103 +2079,206 @@ LIGHTNING_ROD`;
         "LIGHTNING_ROD": "Common"
       };
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Minecraft Bingo Card Randomiser</title>
-  <style>
-    /* Basic Reset & Body Styling */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background-color: #f0f8ff; color: #333; text-align: center; margin: 20px; }
-    h1 { margin-bottom: 10px; }
-    /* Top Bar */
-    #topBar { display: flex; justify-content: space-between; align-items: center; background: #333; color: #fff; padding: 10px; margin-bottom: 10px; }
-    #topBar button { background: #555; border: none; color: #fff; padding: 5px 10px; cursor: pointer; }
-    #topBar button:hover { background: #777; }
-    /* Settings Panel */
-    #settingsPanel { display: none; max-width: 900px; margin: 10px auto; text-align: left; border: 2px solid #333; background: #fff; padding: 10px; }
-    .settingRow { margin-bottom: 10px; }
-    label { margin-right: 10px; }
-    select, input[type="checkbox"] { margin-right: 10px; }
-    /* Modifier Settings */
-    #modifierSettingsList { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; padding: 5px; margin-top: 5px; }
-    .modRow { display: flex; align-items: center; margin-bottom: 5px; }
-    .modRow label { width: 150px; text-align: right; margin-right: 10px; }
-    .modRow select { width: 80px; }
-    /* Main Controls */
-    #mainControls { margin-bottom: 20px; }
-    #mainControls button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-    /* Bingo Card */
-    #bingoCard table { margin: 20px auto; border-collapse: collapse; table-layout: fixed; }
-    #bingoCard td { border: 2px solid #333; width: 80px; height: 80px; vertical-align: middle; font-size: 12px; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.2; cursor: pointer; }
-    #cardSizeDisplay, #gradeDisplay { margin-top: 10px; font-weight: bold; font-size: 16px; }
-    /* Slot Machine */
-    #slotMachine { display: none; margin: 20px auto; width: 320px; border: 2px solid #333; background: #eee; padding: 10px; text-align: center; }
-    .reel { display: inline-block; width: 80px; height: 80px; margin: 0 5px; border: 2px solid #666; font-size: 28px; line-height: 80px; background: #fff; }
-  </style>
-</head>
-<body>
-  <div id="topBar">
-    <h1 style="color:#fff;">Minecraft Bingo Card Randomiser</h1>
-    <button id="settingsButton">Settings</button>
-  </div>
-  <div id="settingsPanel">
-    <h2>Settings</h2>
-    <div class="settingRow">
-      <input type="checkbox" id="randomCardSizeCheckbox" checked>
-      <label for="randomCardSizeCheckbox">Randomise Card Size?</label>
-      <select id="manualSizeSelect" style="display:none;"></select>
-    </div>
-    <div class="settingRow">
-      <label>Modifier Randomisation:</label>
-      <select id="globalModifierToggle"><option>Yes</option><option>No</option></select>
-    </div>
-    <div class="settingRow">
-      <h3>Modifier Settings</h3>
-      <div id="modifierSettingsList"></div>
-    </div>
-    <div class="settingRow">
-      <label for="randomEffectsDropdown">Randomise Effects:</label>
-      <select id="randomEffectsDropdown"><option>Yes</option><option>No</option></select>
-    </div>
-    <div class="settingRow">
-      <button id="editRaritiesButton">Edit Item Rarities</button>
-    </div>
-    <div id="rarityList" style="border:1px solid #ccc; max-height:200px; overflow-y:auto; padding:5px;"></div>
-    <button id="saveRaritiesButton">Save Changes</button>
-    <div class="settingRow">
-      <button id="closeSettingsButton">Close Settings</button>
-    </div>
-  </div>
-  <div id="mainControls">
-    <button id="generateCardButton">Generate New Card</button>
-  </div>
-  <div id="cardSizeDisplay"></div>
-  <div id="bingoCard"></div>
-  <div id="gradeDisplay"></div>
-  <div id="rolledModifiersDisplay" style="margin-top:10px;"></div>
-  <div id="rolledEffectsDisplay" style="margin-top:10px;"></div>
-  <div id="slotMachine">
-    <div class="reel" id="reel1">?</div>
-    <div class="reel" id="reel2">?</div>
-    <div class="reel" id="reel3">?</div>
-  </div>
-  <audio id="soundSuperRare"></audio><audio id="soundRare"></audio><audio id="soundUncommon"></audio><audio id="soundCommon"></audio><audio id="soundVeryCommon"></audio>
-  <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // Rarity mapping defined above
-    // Build modifier settings
-    const modOptions={"Difficulty":["Easy","Normal","Hard"],"Full Card":["Yes","No","Lockout"],"Hardcore":["Yes","No"],"Random Teleport":["Yes","No"],"PvP Enabled":["Yes","No"],"Keep Inventory":["Yes","No"],"Daylight Cycle":["Yes","No"],"Mob Spawning":["Yes","No"],"Tickspeed":["1","3","5","10"],"Random Teams":["Yes","No"]};
-    function buildModifierSettings(){const c=document.getElementById("modifierSettingsList");c.innerHTML="";for(let m in modOptions){const r=document.createElement("div");r.className="modRow";const l=document.createElement("label");l.innerText=m+":";const s=document.createElement("select");s.id="mod_"+m.replace(/\s+/g,"");["Yes","No"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;s.appendChild(o);});s.value="Yes";r.append(l,s);c.appendChild(r);} }
-    buildModifierSettings();
-    window.rollRarityCategory=rollRarityCategory;window.fullItemsArray=fullItemsArray;window.defaultRarityMapping=defaultRarityMapping;window.categoryMapping=categoryMapping;
-    // Reroll logic
-    document.addEventListener("click",e=>{const td=e.target.closest("#bingoCard td");if(td){td.style.pointerEvents="none";const cat=rollRarityCategory();const pool=fullItemsArray.filter(i=>defaultRarityMapping[i]===cat);const itm=pool.length?pool[Math.floor(Math.random()*pool.length)]:fullItemsArray[Math.floor(Math.random()*fullItemsArray.length)];let start=Date.now();let iv=setInterval(()=>{if(Date.now()-start>=500){clearInterval(iv);td.innerHTML=itm+"<br><span style='font-size:10px;'>"+cat+"</span>";td.style.backgroundColor=categoryMapping[cat].color;td.style.color=categoryMapping[cat].textColor;td.dataset.itemText=itm;const sid={"Super Rare":"soundSuperRare","Rare":"soundRare","Uncommon":"soundUncommon","Common":"soundCommon","Very Common":"soundVeryCommon"}[cat];const sE=document.getElementById(sid);if(sE){sE.currentTime=0;sE.play();}}else{td.innerText=fullItemsArray[Math.floor(Math.random()*fullItemsArray.length)];}},50);setTimeout(()=>td.style.pointerEvents="auto",600);} });
-    // Copy-on-hover
-    let hov=null;document.addEventListener("mouseover",e=>{if(e.target.closest("#bingoCard td"))hov=e.target;});document.addEventListener("mouseout",e=>{if(e.target===hov)hov=null;});document.addEventListener("keydown",e=>{if(e.key.toLowerCase()==="c"&&hov){const t=hov.dataset.itemText||hov.textContent.trim();navigator.clipboard.writeText(t).then(()=>{const p=document.createElement("div");Object.assign(p.style,{position:"fixed",bottom:"20px",left:"50%",transform:"translateX(-50%)",background:"rgba(0,0,0,0.8)",color:"#fff",padding:"8px 16px",borderRadius:"6px",opacity:"0",transition:"opacity 0.3s",zIndex:"9999"});p.textContent=`Copied: "${t}"`;document.body.appendChild(p);requestAnimationFrame(()=>p.style.opacity="1");setTimeout(()=>{p.style.opacity="0";setTimeout(()=>p.remove(),300);},1400);}).catch(console.error);} });
+  // Working rarity mapping: start with defaults.
+  let workingRarityMapping = {};
+  fullItemsArray.forEach(item => {
+    workingRarityMapping[item] = defaultRarityMapping[item] || "Common";
   });
-  </script>
+
+  /********** MODIFIER SETTINGS **********/
+  const modOptions = {
+    "Difficulty":      ["Easy","Normal","Hard"],
+    "Full Card":       ["Yes","No","Lockout"],
+    "Hardcore":        ["Yes","No"],
+    "Random Teleport": ["Yes","No"],
+    "PvP Enabled":     ["Yes","No"],
+    "Keep Inventory":  ["Yes","No"],
+    "Daylight Cycle":  ["Yes","No"],
+    "Mob Spawning":    ["Yes","No"],
+    "Tickspeed":       ["1","3","5","10"],
+    "Random Teams":    ["Yes","No"]
+  };
+  function buildModifierSettings() {
+    const container = document.getElementById("modifierSettingsList");
+    container.innerHTML = "";
+    for (let mod in modOptions) {
+      const row = document.createElement("div"); row.className = "modRow";
+      const label = document.createElement("label"); label.innerText = mod + ":";
+      const sel = document.createElement("select");
+      sel.id = "mod_" + mod.replace(/\s+/g, "");
+      ["Yes","No"].forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v; opt.textContent = v;
+        sel.appendChild(opt);
+      });
+      sel.value = "Yes";
+      row.append(label, sel);
+      container.appendChild(row);
+    }
+  }
+
+  /********** MODIFIER ROLLING **********/
+  function rollSingleModifier(modName) {
+    const choices = modOptions[modName];
+    return choices[Math.floor(Math.random() * choices.length)];
+  }
+  function rollModifiersEnabled() {
+    const res = {};
+    for (let mod in modOptions) {
+      const sel = document.getElementById("mod_" + mod.replace(/\s+/g,""));
+      if (sel && sel.value === "Yes") {
+        res[mod] = rollSingleModifier(mod);
+      }
+    }
+    return res;
+  }
+  function animateModifiers(mods) {
+    const display = document.getElementById("rolledModifiersDisplay");
+    display.innerHTML = "";
+    return new Promise(resolve => {
+      const keys = Object.keys(mods);
+      let i = 0;
+      function next() {
+        if (i < keys.length) {
+          const p = document.createElement("p");
+          p.innerText = keys[i] + ": " + mods[keys[i]];
+          display.appendChild(p);
+          i++;
+          setTimeout(next, 300);
+        } else {
+          resolve();
+        }
+      }
+      keys.length ? next() : (display.innerText = "No modifiers rolled.", resolve());
+    });
+  }
+
+  /********** EFFECT ROLLING **********/
+  const effectList = [
+    "speed","slow","fast_digging","slow_digging","jump","confusion",
+    "damage_resistance","fire_resistance","water_breathing","invisibility",
+    "blindness","night_vision","hunger","weakness","poison","wither",
+    "glowing","slow_falling","darkness","regeneration","dolphins_grace"
+  ];
+  function rollEffects() {
+    const out = [];
+    while (Math.random() < 0.5) {
+      const eff = effectList[Math.floor(Math.random() * effectList.length)];
+      const lvl = Math.floor(Math.random() * 10) + 1;
+      out.push(eff + " " + lvl);
+    }
+    return out.length ? out : ["None"];
+  }
+  function animateEffects(effects) {
+    const display = document.getElementById("rolledEffectsDisplay");
+    display.innerHTML = "";
+    return new Promise(resolve => {
+      let i = 0;
+      function next() {
+        if (i < effects.length) {
+          const p = document.createElement("p");
+          p.innerText = effects[i++];
+          display.appendChild(p);
+          setTimeout(next, 300);
+        } else resolve();
+      }
+      next();
+    });
+  }
+
+  /********** — YOUR EXISTING CARD FUNCTIONS GO HERE — **********/
+  // rollRarityCategory, generateCardArray, computeCardGrade,
+  // buildCardTable, revealCell, revealCardSequentially,
+  // animateSlotMachine, getCardSize, main,
+  // buildRarityEditor, saveRarities,
+  // toggleSettings, closeSettings, and their event listeners.
+
+  // Build Modifier UI & expose to global scope
+  buildModifierSettings();
+  window.rollRarityCategory     = rollRarityCategory;
+  window.fullItemsArray         = fullItemsArray;
+  window.defaultRarityMapping   = defaultRarityMapping;
+  window.categoryMapping        = categoryMapping;
+
+  /********** REROLL-ON-CLICK **********/
+  function rerollCell(cell) {
+    const start = Date.now(), duration = 500;
+    const newCat = rollRarityCategory();
+    const pool   = fullItemsArray.filter(i => defaultRarityMapping[i] === newCat);
+    const itm    = pool.length
+      ? pool[Math.floor(Math.random() * pool.length)]
+      : fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
+
+    const iv = setInterval(() => {
+      if (Date.now() - start >= duration) {
+        clearInterval(iv);
+        cell.innerHTML = `${itm}<br><span style="font-size:10px;">${newCat}</span>`;
+        cell.style.backgroundColor = categoryMapping[newCat].color;
+        cell.style.color           = categoryMapping[newCat].textColor;
+        cell.dataset.itemText      = itm;
+        const soundId = {
+          "Super Rare":  "soundSuperRare",
+          "Rare":        "soundRare",
+          "Uncommon":    "soundUncommon",
+          "Common":      "soundCommon",
+          "Very Common": "soundVeryCommon"
+        }[newCat];
+        const snd = document.getElementById(soundId);
+        if (snd) { snd.currentTime = 0; snd.play(); }
+      } else {
+        cell.innerText = fullItemsArray[Math.floor(Math.random() * fullItemsArray.length)];
+      }
+    }, 50);
+  }
+  document.addEventListener("click", e => {
+    const td = e.target.closest("#bingoCard td");
+    if (!td) return;
+    td.style.pointerEvents = "none";
+    rerollCell(td);
+    setTimeout(() => td.style.pointerEvents = "auto", 600);
+  });
+
+  /********** COPY-ON-HOVER + “C” KEY **********/
+  let hoveredCell = null;
+  document.addEventListener("mouseover", e => {
+    if (e.target.closest("#bingoCard td")) hoveredCell = e.target;
+  });
+  document.addEventListener("mouseout", e => {
+    if (e.target === hoveredCell) hoveredCell = null;
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key.toLowerCase() === "c" && hoveredCell) {
+      const text = hoveredCell.dataset.itemText || hoveredCell.textContent.trim();
+      navigator.clipboard.writeText(text)
+        .then(() => showCopyPopup(`Copied: "${text}"`))
+        .catch(console.error);
+    }
+  });
+  function showCopyPopup(msg) {
+    const pop = document.createElement("div");
+    Object.assign(pop.style, {
+      position:   "fixed",
+      bottom:     "20px",
+      left:       "50%",
+      transform:  "translateX(-50%)",
+      background: "rgba(0,0,0,0.8)",
+      color:      "#fff",
+      padding:    "8px 16px",
+      borderRadius: "6px",
+      opacity:      "0",
+      transition:  "opacity 0.3s",
+      zIndex:      "9999"
+    });
+    pop.textContent = msg;
+    document.body.appendChild(pop);
+    requestAnimationFrame(() => pop.style.opacity = "1");
+    setTimeout(() => {
+      pop.style.opacity = "0";
+      setTimeout(() => pop.remove(), 300);
+    }, 1400);
+  }
+
+}); // End DOMContentLoaded
+</script>
 </body>
 </html>
